@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.widget.Toast
+import java.text.Normalizer
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -29,6 +30,12 @@ class MainActivity : AppCompatActivity() {
     
     companion object {
         private const val REQUEST_QUERY_ALL_PACKAGES = 1001
+    }
+    
+    private fun normalizeText(text: String): String {
+        return Normalizer.normalize(text, Normalizer.Form.NFD)
+            .replace("\\p{InCombiningDiacriticalMarks}+".toRegex(), "")
+            .lowercase()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -137,7 +144,8 @@ class MainActivity : AppCompatActivity() {
         val filteredApps = if (query.isEmpty()) {
             allApps
         } else {
-            allApps.filter { it.name.lowercase().contains(query.lowercase()) }
+            val normalizedQuery = normalizeText(query)
+            allApps.filter { normalizeText(it.name).contains(normalizedQuery) }
         }
         appAdapter.updateApps(filteredApps)
     }
@@ -148,6 +156,7 @@ class MainActivity : AppCompatActivity() {
             intent.component = android.content.ComponentName(appInfo.packageName, appInfo.className)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
+            searchEditText.text.clear()
         } catch (e: Exception) {
         }
     }
