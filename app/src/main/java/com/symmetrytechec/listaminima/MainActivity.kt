@@ -19,6 +19,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.widget.Toast
+import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
 import java.text.Normalizer
 import java.util.*
 
@@ -27,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appsRecyclerView: RecyclerView
     private lateinit var appAdapter: AppAdapter
     private var allApps = mutableListOf<AppInfo>()
+    private var filteredApps = mutableListOf<AppInfo>()
     
     companion object {
         private const val REQUEST_QUERY_ALL_PACKAGES = 1001
@@ -90,6 +93,17 @@ class MainActivity : AppCompatActivity() {
                 filterApps(s.toString())
             }
         })
+        
+        searchEditText.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_DONE || 
+                actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                launchFirstApp()
+                true
+            } else {
+                false
+            }
+        }
     }
 
     private fun setupAutoFocus() {
@@ -141,13 +155,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun filterApps(query: String) {
-        val filteredApps = if (query.isEmpty()) {
-            allApps
+        filteredApps = if (query.isEmpty()) {
+            allApps.toMutableList()
         } else {
             val normalizedQuery = normalizeText(query)
-            allApps.filter { normalizeText(it.name).contains(normalizedQuery) }
+            allApps.filter { normalizeText(it.name).contains(normalizedQuery) }.toMutableList()
         }
         appAdapter.updateApps(filteredApps)
+    }
+    
+    private fun launchFirstApp() {
+        if (filteredApps.isNotEmpty()) {
+            launchApp(filteredApps[0])
+        }
     }
 
     private fun launchApp(appInfo: AppInfo) {
